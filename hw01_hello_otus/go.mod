@@ -1,4 +1,4 @@
-module main
+module github.com/IKolyas/golang/hw01_hello_otus
 
 go 1.23.1
 
