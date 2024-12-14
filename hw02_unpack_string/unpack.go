@@ -1,31 +1,38 @@
 package hw02unpackstring
 
 import (
-	"errors"
 	"fmt"
+	"strconv"
 	"strings"
+	"unicode"
 )
-
-var ErrInvalidString = errors.New("invalid string")
 
 func Unpack(s string) (string, error) {
 	var result strings.Builder
-	var count int
-	for _, r := range s {
-		if r >= '0' && r <= '9' {
-			count = count*10 + int(r-'0')
-		} else {
-			if count == 0 {
-				count = 1
-			}
-			for i := 0; i < count; i++ {
-				result.WriteRune(r)
-			}
-			count = 0
+
+	for i := 0; i < len(s); i++ {
+
+		if !unicode.IsDigit(rune(s[i])) {
+			result.WriteString(string(s[i]))
+			continue
 		}
-	}
-	if count != 0 {
-		return "", fmt.Errorf("invalid string")
+
+		if i == 0 {
+			return "", fmt.Errorf("invalid string")
+		}
+
+		if i+1 <= len(s) && unicode.IsDigit(rune(s[i+1])) {
+			return "", fmt.Errorf("invalid string")
+		}
+
+		count, _ := strconv.Atoi(string(s[i]))
+		if count == 0 {
+			continue
+		}
+
+		for n := count; n > 1; n-- {
+			result.WriteString(string(s[i-1]))
+		}
 	}
 	return result.String(), nil
 }
