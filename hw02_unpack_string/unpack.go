@@ -15,27 +15,31 @@ func Unpack(s string) (string, error) {
 
 	for i := 0; i < len(s); i++ {
 
-		if !unicode.IsDigit(rune(s[i])) {
+		first := rune(s[i])
+
+		if i == len(s)-1 && unicode.IsLetter(first) {
 			result.WriteString(string(s[i]))
 			continue
 		}
 
-		if i == 0 {
-			return "", fmt.Errorf("invalid string")
-		}
+		second := rune(s[i+1])
 
-		if i+1 <= len(s) && unicode.IsDigit(rune(s[i+1])) {
-			return "", fmt.Errorf("invalid string")
-		}
-
-		count, _ := strconv.Atoi(string(s[i]))
-		if count == 0 {
+		if unicode.IsDigit(first) {
+			if i == 0 || unicode.IsDigit(second) {
+				return "", fmt.Errorf("invalid string")
+			}
 			continue
 		}
 
-		for n := count; n > 1; n-- {
-			result.WriteString(string(s[i-1]))
+		if unicode.IsLetter(second) {
+			result.WriteString(string(first))
+			continue
 		}
+
+		n, _ := strconv.Atoi(string(second))
+		result.WriteString(strings.Repeat(string(first), n))
+
 	}
+
 	return result.String(), nil
 }
