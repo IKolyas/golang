@@ -13,7 +13,6 @@ func Unpack(s string) (string, error) {
 	var result strings.Builder
 
 	for i := 0; i < len(s); i++ {
-
 		first := rune(s[i])
 
 		if i == len(s)-1 && unicode.IsLetter(first) {
@@ -37,7 +36,6 @@ func Unpack(s string) (string, error) {
 
 		n, _ := strconv.Atoi(string(second))
 		result.WriteString(strings.Repeat(string(first), n))
-
 	}
 
 	return result.String(), nil
