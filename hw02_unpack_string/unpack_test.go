@@ -2,6 +2,8 @@ package hw02unpackstring
 
 import (
 	"errors"
+	"regexp"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -42,6 +44,30 @@ func TestUnpack(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestUnpackCompareSum(t *testing.T) {
+	tests := []string{"a4bc2d5e2q", "a4f5", "aaa1ab"}
+
+	for _, tc := range tests {
+		tc := tc
+
+		t.Run(tc, func(t *testing.T) {
+			sum := len(tc)
+
+			re := regexp.MustCompile(`\d`).FindAllString(tc, -1)
+
+			for _, num := range re {
+				n, _ := strconv.Atoi(num)
+
+				sum += n - 2
+			}
+
+			res, _ := Unpack(tc)
+
+			require.Equal(t, len(res), sum)
 		})
 	}
 }

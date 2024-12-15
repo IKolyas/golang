@@ -15,8 +15,13 @@ func Unpack(s string) (string, error) {
 	for i := 0; i < len(s); i++ {
 		first := rune(s[i])
 
+		if unicode.IsDigit(first) && i >= len(s)-1 {
+			continue
+		}
+
 		if i == len(s)-1 && unicode.IsLetter(first) {
 			result.WriteString(string(s[i]))
+
 			continue
 		}
 
@@ -26,15 +31,18 @@ func Unpack(s string) (string, error) {
 			if i == 0 || unicode.IsDigit(second) {
 				return "", ErrInvalidString
 			}
+
 			continue
 		}
 
 		if unicode.IsLetter(second) {
 			result.WriteString(string(first))
+
 			continue
 		}
 
 		n, _ := strconv.Atoi(string(second))
+
 		result.WriteString(strings.Repeat(string(first), n))
 	}
 
