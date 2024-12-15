@@ -1,11 +1,14 @@
 package hw02unpackstring
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"unicode"
 )
+
+var ErrInvalidString = errors.New("invalid string")
 
 func Unpack(s string) (string, error) {
 	var result strings.Builder
