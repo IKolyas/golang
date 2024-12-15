@@ -2,7 +2,6 @@ package hw02unpackstring
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 	"unicode"
@@ -26,7 +25,7 @@ func Unpack(s string) (string, error) {
 
 		if unicode.IsDigit(first) {
 			if i == 0 || unicode.IsDigit(second) {
-				return "", fmt.Errorf("invalid string")
+				return "", ErrInvalidString
 			}
 			continue
 		}
