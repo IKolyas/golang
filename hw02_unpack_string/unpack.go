@@ -12,20 +12,22 @@ var ErrInvalidString = errors.New("invalid string")
 func Unpack(s string) (string, error) {
 	var result strings.Builder
 
-	for i := 0; i < len(s); i++ {
-		first := rune(s[i])
+	input := []rune(s)
 
-		if unicode.IsDigit(first) && i >= len(s)-1 {
+	for i := 0; i < len(input); i++ {
+		first := rune(input[i])
+
+		if unicode.IsDigit(first) && i >= len(input)-1 {
 			continue
 		}
 
-		if i == len(s)-1 && unicode.IsLetter(first) {
-			result.WriteString(string(s[i]))
+		if i == len(input)-1 && unicode.IsLetter(first) {
+			result.WriteString(string(input[i]))
 
 			continue
 		}
 
-		second := rune(s[i+1])
+		second := rune(input[i+1])
 
 		if unicode.IsDigit(first) {
 			if i == 0 || unicode.IsDigit(second) {
