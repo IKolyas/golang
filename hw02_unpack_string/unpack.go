@@ -15,7 +15,7 @@ func Unpack(s string) (string, error) {
 	input := []rune(s)
 
 	for i := 0; i < len(input); i++ {
-		first := rune(input[i])
+		first := input[i]
 
 		if unicode.IsDigit(first) && i >= len(input)-1 {
 			continue
@@ -27,7 +27,7 @@ func Unpack(s string) (string, error) {
 			continue
 		}
 
-		second := rune(input[i+1])
+		second := input[i+1]
 
 		if unicode.IsDigit(first) {
 			if i == 0 || unicode.IsDigit(second) {
