@@ -35,7 +35,12 @@ func (c *lruCache) Set(key Key, value interface{}) bool {
 	if c.queue.Len() > c.capacity {
 		last := c.queue.Back()
 		c.queue.Remove(last)
-		delete(c.items, key)
+		for k, item := range c.items {
+			if item == last {
+				delete(c.items, k)
+				break
+			}
+		}
 	}
 
 	return false
@@ -53,6 +58,8 @@ func (c *lruCache) Get(key Key) (interface{}, bool) {
 }
 
 func (c *lruCache) Clear() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	c.queue = NewList()
 	c.items = make(map[Key]*ListItem, c.capacity)
 }
