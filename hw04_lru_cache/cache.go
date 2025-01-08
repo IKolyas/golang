@@ -19,24 +19,32 @@ type lruCache struct {
 	mutex    sync.Mutex
 }
 
+type val struct {
+	CacheKey Key
+	Value    interface{}
+}
+
 func (c *lruCache) Set(key Key, value interface{}) bool {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
+	var v val
+	v.CacheKey = key
+	v.Value = value
+
 	if item, ok := c.items[key]; ok {
-		item.Value = value
+		item.Value = v
 		c.queue.MoveToFront(item)
 		return true
 	}
 
-	item := c.queue.PushFront(value)
-	item.Key = key
+	item := c.queue.PushFront(v)
 	c.items[key] = item
 
 	if c.queue.Len() > c.capacity {
 		last := c.queue.Back()
 		c.queue.Remove(last)
-		delete(c.items, last.Key)
+		delete(c.items, v.CacheKey)
 	}
 
 	return false
@@ -48,7 +56,7 @@ func (c *lruCache) Get(key Key) (interface{}, bool) {
 
 	if item, ok := c.items[key]; ok {
 		c.queue.MoveToFront(item)
-		return item.Value, true
+		return item.Value.(val).Value, true
 	}
 	return nil, false
 }
