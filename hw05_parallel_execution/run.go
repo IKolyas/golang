@@ -43,11 +43,11 @@ func Run(tasks []Task, n, m int) error {
 			case <-errorChan:
 				mu.Lock()
 				errorCount++
-				mu.Unlock()
 				if errorCount >= m {
 					cancel()
 					return
 				}
+				mu.Unlock()
 			case <-ctx.Done():
 				return
 			}
