@@ -26,13 +26,11 @@ func Run(tasks []Task, n, m int) error {
 			defer wg.Done()
 			for task := range taskChan {
 				if err := task(); err != nil {
-					mu.Lock()
 					select {
 					case errorChan <- err:
 					case <-ctx.Done():
 						return
 					}
-					mu.Unlock()
 				}
 			}
 		}()
@@ -45,11 +43,11 @@ func Run(tasks []Task, n, m int) error {
 			case <-errorChan:
 				mu.Lock()
 				errorCount++
+				mu.Unlock()
 				if errorCount >= m {
 					cancel()
 					return
 				}
-				mu.Unlock()
 			case <-ctx.Done():
 				return
 			}
