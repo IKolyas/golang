@@ -1,4 +1,4 @@
-module github.github.com/IKolyas/golang/hw05_parallel_execution
+module github.com/IKolyas/golang/hw05_parallel_execution
 
 go 1.22
 
