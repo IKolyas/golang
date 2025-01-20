@@ -38,7 +38,7 @@ func TestRun(t *testing.T) {
 		require.LessOrEqual(t, runTasksCount, int32(workersCount+maxErrorsCount), "extra tasks were started")
 	})
 
-	t.Run("if max count errors sub zero and tascs Less workersCount", func(t *testing.T) {
+	t.Run("if max count errors where m < 0 and tascs Less workersCount", func(t *testing.T) {
 		tasksCount := 50
 		tasks := make([]Task, 0, tasksCount)
 

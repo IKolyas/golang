@@ -1,7 +1,6 @@
 package hw05parallelexecution
 
 import (
-	"context"
 	"errors"
 	"sync"
 )
@@ -10,64 +9,42 @@ var ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
 
 type Task func() error
 
-// Run starts tasks in n goroutines and stops its work when receiving m errors from tasks.
 func Run(tasks []Task, n, m int) error {
-	taskChan := make(chan func() error)
-	errorChan := make(chan error)
-	var wg sync.WaitGroup
-	mu := &sync.Mutex{}
+	if m < 0 {
+		m = 0
+	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	taskCh := make(chan func() error)
+	mu := sync.Mutex{}
+	wg := sync.WaitGroup{}
 
-	// Запускаем n горутин для обработки задач
+	var res error
+
 	for i := 0; i < n; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for task := range taskChan {
+			for task := range taskCh {
 				if err := task(); err != nil {
-					select {
-					case errorChan <- err:
-					case <-ctx.Done():
+					mu.Lock()
+					m--
+					if m <= 0 {
+						res = ErrErrorsLimitExceeded
+						mu.Unlock()
 						return
 					}
+					mu.Unlock()
 				}
 			}
 		}()
 	}
 
-	errorCount := 0
-	go func() {
-		for {
-			select {
-			case <-errorChan:
-				mu.Lock()
-				errorCount++
-				mu.Unlock()
-				if errorCount >= m {
-					cancel()
-					return
-				}
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-
 	for _, task := range tasks {
-		taskChan <- task
+		taskCh <- task
 	}
-
-	// Завершаем работу канала тасков
-	close(taskChan)
+	close(taskCh) // Закрываем канал после отправки всех задач
 
 	wg.Wait()
 
-	// После завершения работы канала тасков закрываем канал ошибок
-	close(errorChan)
-
-	if errorCount >= m {
-		return ErrErrorsLimitExceeded
-	}
-	return nil
+	return res
 }
