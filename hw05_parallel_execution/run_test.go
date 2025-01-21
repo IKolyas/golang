@@ -38,31 +38,6 @@ func TestRun(t *testing.T) {
 		require.LessOrEqual(t, runTasksCount, int32(workersCount+maxErrorsCount), "extra tasks were started")
 	})
 
-	t.Run("if max count errors where m < 0 and tascs Less workersCount", func(t *testing.T) {
-		tasksCount := 50
-		tasks := make([]Task, 0, tasksCount)
-
-		var runTasksCount int32
-
-		for i := 0; i < tasksCount; i++ {
-			tasks = append(tasks, func() error {
-				time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
-				atomic.AddInt32(&runTasksCount, 1)
-				if i == 14 {
-					return fmt.Errorf("error from task %d", i)
-				}
-				return nil
-			})
-		}
-
-		workersCount := 10
-		maxErrorsCount := -1
-		err := Run(tasks, workersCount, maxErrorsCount)
-
-		require.Truef(t, errors.Is(err, ErrErrorsLimitExceeded), "actual err - %v", err)
-		require.GreaterOrEqual(t, runTasksCount, int32(tasksCount), "extra tasks were started")
-	})
-
 	t.Run("tasks without errors", func(t *testing.T) {
 		tasksCount := 50
 		tasks := make([]Task, 0, tasksCount)
@@ -91,5 +66,34 @@ func TestRun(t *testing.T) {
 
 		require.Equal(t, runTasksCount, int32(tasksCount), "not all tasks were completed")
 		require.LessOrEqual(t, int64(elapsedTime), int64(sumTime/2), "tasks were run sequentially?")
+	})
+}
+
+func TestRunLessThanZero(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
+	t.Run("if max count errors Less Than Zero", func(t *testing.T) {
+		tasksCount := 50
+		tasks := make([]Task, 0, tasksCount)
+
+		var runTasksCount int32
+
+		for i := 0; i < tasksCount; i++ {
+			tasks = append(tasks, func() error {
+				time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
+				atomic.AddInt32(&runTasksCount, 1)
+				if i == 14 {
+					return fmt.Errorf("error from task %d", i)
+				}
+				return nil
+			})
+		}
+
+		workersCount := 10
+		maxErrorsCount := -1
+		err := Run(tasks, workersCount, maxErrorsCount)
+
+		require.Truef(t, errors.Is(err, ErrErrorsLimitExceeded), "actual err - %v", err)
+		require.GreaterOrEqual(t, runTasksCount, int32(tasksCount), "extra tasks were started")
 	})
 }
