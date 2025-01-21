@@ -14,7 +14,7 @@ func Run(tasks []Task, n, m int) error {
 		m = 0
 	}
 
-	taskCh := make(chan func() error)
+	taskCh := make(chan func() error, len(tasks))
 	mu := sync.Mutex{}
 	wg := sync.WaitGroup{}
 
