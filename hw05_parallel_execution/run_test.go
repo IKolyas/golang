@@ -30,7 +30,7 @@ func TestRun(t *testing.T) {
 			})
 		}
 
-		workersCount := 100
+		workersCount := 10
 		maxErrorsCount := 23
 		err := Run(tasks, workersCount, maxErrorsCount)
 
