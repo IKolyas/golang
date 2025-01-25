@@ -14,37 +14,67 @@ func Run(tasks []Task, n, m int) error {
 		m = 0
 	}
 
-	taskCh := make(chan func() error, len(tasks))
-	mu := sync.Mutex{}
+	workerCh := make(chan func() error)
+
+	stopCh := make(chan struct{})
+
+	var result error
+
 	wg := sync.WaitGroup{}
 
-	var res error
+	mu := sync.Mutex{}
 
 	for i := 0; i < n; i++ {
 		wg.Add(1)
+
 		go func() {
-			defer wg.Done()
-			for task := range taskCh {
-				if err := task(); err != nil {
-					mu.Lock()
-					m--
-					if m <= 0 {
-						res = ErrErrorsLimitExceeded
-						mu.Unlock()
+			defer wg.Done() // Завершаем worker
+
+			for {
+				select {
+				case <-stopCh:
+
+					return
+
+				case worker, ok := <-workerCh:
+
+					if !ok {
 						return
 					}
-					mu.Unlock()
+
+					if err := worker(); err != nil {
+						mu.Lock()
+
+						m--
+
+						mu.Unlock()
+					}
 				}
 			}
 		}()
 	}
 
 	for _, task := range tasks {
-		taskCh <- task
+		mu.Lock()
+
+		if m <= 0 {
+			result = ErrErrorsLimitExceeded
+
+			mu.Unlock()
+
+			close(stopCh)
+
+			break
+		}
+
+		mu.Unlock()
+
+		workerCh <- task
 	}
-	close(taskCh) // Закрываем канал после отправки всех задач
+
+	close(workerCh) // Закрываем канал после отправки всех задач
 
 	wg.Wait()
 
-	return res
+	return result
 }
