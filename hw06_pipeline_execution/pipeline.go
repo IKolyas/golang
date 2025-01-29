@@ -44,6 +44,7 @@ func ExecutePipeline(in In, done In, stages ...Stage) Out {
 
 		in = stage(in)
 		go func() {
+			defer wg.Done()
 			for {
 				select {
 				case <-done:
