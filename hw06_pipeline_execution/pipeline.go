@@ -1,6 +1,7 @@
 package hw06pipelineexecution
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
@@ -24,6 +25,7 @@ func resAwait(in In, done In, out Bi) {
 			if !ok {
 				return
 			}
+			fmt.Printf("Out %d \n", 211)
 			out <- value
 		// Сливаем пайплайн по истечении отведённого времени
 		case <-time.After(time.Second):
@@ -38,27 +40,35 @@ func ExecutePipeline(in In, done In, stages ...Stage) Out {
 	wg := sync.WaitGroup{}
 
 	for _, stage := range stages {
+		wg.Add(1)
+
 		in = stage(in)
+		go func() {
+			for {
+				select {
+				case <-done:
+					return
+				case value, ok := <-in:
+					if !ok {
+						return
+					}
+					out <- value
+				case <-time.After(time.Second * 2):
+					return
+				}
+			}
+		}()
 	}
-
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		resAwait(in, done, out)
-	}()
 
 	go func() {
 		defer func() {
 			for range in {
-				// Сливаем зависшие вычисления
-				// Ругается линтер
 				<-in
 			}
 		}()
-
 		wg.Wait()
 		close(out)
+
 	}()
 
 	return out
