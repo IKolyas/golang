@@ -53,7 +53,7 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	}
 	defer dstFile.Close()
 
-	bar := pb.StartNew(int(fileSize))
+	bar := pb.StartNew(int(limit))
 
 	// Чтение данных из исходного файла и запись в целевой файл
 	reader := bufio.NewReader(srcFile)
@@ -77,7 +77,7 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		}
 
 		limit -= int64(n)
-		bar.Add(n)
+		bar.Add(int(limit) + n)
 	}
 
 	// Закрытие целевого файла и освобождение ресурсов
