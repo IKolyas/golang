@@ -76,7 +76,7 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	writer := io.MultiWriter(dstFile, bar)
 
 	if _, err := io.Copy(writer, reader); err != nil {
-		return fmt.Errorf("ошибка копирования данных: %v", err)
+		return errors.New("ошибка копирования данных")
 	}
 
 	return nil
