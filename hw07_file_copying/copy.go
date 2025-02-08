@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -20,6 +19,11 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	if fromPath == "" || toPath == "" {
 		return errors.New("необходимо указать путь к исходному и целевому файлам")
 	}
+
+	if toPath == fromPath {
+		return errors.New("исходный файл и целевой не должны совпадать")
+	}
+
 	// Открытие исходного файла
 	srcFile, err := os.Open(fromPath)
 	if err != nil {
@@ -27,8 +31,18 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	}
 	defer srcFile.Close()
 
-	// Проверка размера исходного файла
+	// Проверяем, является ли файл специальным
 	fileInfo, err := srcFile.Stat()
+	if err != nil {
+		return errors.New("ошибка при получении информации о файле")
+	}
+
+	if (fileInfo.Mode() & os.ModeCharDevice) != 0 {
+		return errors.New("нельзя копировать специальный файл /dev/urandom")
+	}
+
+	// Проверка размера исходного файла
+	fileInfo, err = srcFile.Stat()
 	if err != nil {
 		return err
 	}
@@ -53,41 +67,17 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	}
 	defer dstFile.Close()
 
+	// Создаем прогресс-бар
 	bar := pb.StartNew(int(limit))
+	defer bar.Finish()
 
-	// Чтение данных из исходного файла и запись в целевой файл
-	reader := bufio.NewReader(srcFile)
-	writer := bufio.NewWriter(dstFile)
-	for {
-		buf := make([]byte, 1024*8) // Размер буфера для чтения
-		n, err := reader.Read(buf)
-		if errors.Is(err, io.EOF) {
-			break
-		}
-		if err != nil {
-			return err
-		}
-		if limit < 0 {
-			break
-		}
+	// Используем io.Copy с ограничением по лимиту
+	reader := io.LimitReader(srcFile, limit)
+	writer := io.MultiWriter(dstFile, bar)
 
-		_, err = writer.Write(buf[:limit])
-		if err != nil {
-			return err
-		}
-
-		limit -= int64(n)
-		bar.Add(int(limit) + n)
+	if _, err := io.Copy(writer, reader); err != nil {
+		return fmt.Errorf("ошибка копирования данных: %v", err)
 	}
-
-	// Закрытие целевого файла и освобождение ресурсов
-	err = writer.Flush()
-	if err != nil {
-		fmt.Printf("Ошибка закрытия целевого файла: %v\n", err)
-		return err
-	}
-
-	bar.Finish()
 
 	return nil
 }
