@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/cheggaaa/pb"
 )
@@ -20,7 +21,18 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		return errors.New("необходимо указать путь к исходному и целевому файлам")
 	}
 
-	if toPath == fromPath {
+	// Получаем абсолютные пути
+	absFromPath, err := filepath.Abs(fromPath)
+	if err != nil {
+		return errors.New("не удалось получить доступ к исходному файлу")
+	}
+
+	absToPath, err := filepath.Abs(toPath)
+	if err != nil {
+		return errors.New("не удалось получить доступ к целевому файлу")
+	}
+
+	if absFromPath == absToPath {
 		return errors.New("исходный файл и целевой не должны совпадать")
 	}
 
