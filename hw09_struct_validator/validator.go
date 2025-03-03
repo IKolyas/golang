@@ -26,6 +26,14 @@ func (v ValidationErrors) Error() string {
 	return strings.Join(errStrings, "; ")
 }
 
+type ProgrammError struct {
+	Message string
+}
+
+func (e ProgrammError) Error() string {
+	return e.Message
+}
+
 func Validate(v interface{}) error {
 	val := reflect.ValueOf(v)
 
@@ -53,6 +61,10 @@ func Validate(v interface{}) error {
 		for _, validator := range validators {
 			err := applyValidator(fieldValue, validator)
 			if err != nil {
+				var progErr ProgrammError
+				if errors.As(err, &progErr) {
+					return err // Прекращаем валидацию
+				}
 				validationErrors = append(validationErrors, ValidationError{Field: field.Name, Err: err})
 			}
 		}
@@ -70,7 +82,7 @@ func applyValidator(value reflect.Value, validator string) error {
 	parts := strings.SplitN(validator, ":", 2)
 
 	if len(parts) != 2 {
-		panic(fmt.Errorf("invalid validator format: %s", validator))
+		return ProgrammError{Message: fmt.Sprintf("invalid validator format: %s", validator)}
 	}
 
 	rule := parts[0]
@@ -84,7 +96,7 @@ func applyValidator(value reflect.Value, validator string) error {
 	case reflect.Slice:
 		return validateSlice(value, rule, param)
 	default:
-		panic(fmt.Errorf("unsupported type for validation: %s", value.Kind()))
+		return ProgrammError{Message: fmt.Sprintf("unsupported type for validation: %s", value.Kind())}
 	}
 }
 
@@ -95,7 +107,7 @@ func validateString(value, rule, param string) error {
 	case "len":
 		expectedLen, err := strconv.Atoi(param)
 		if err != nil {
-			panic(fmt.Errorf("invalid length parameter: %s", param))
+			return ProgrammError{Message: fmt.Sprintf("invalid length parameter: %s", param)}
 		}
 
 		if len([]rune(value)) != expectedLen {
@@ -104,7 +116,7 @@ func validateString(value, rule, param string) error {
 	case "regexp":
 		re, err := regexp.Compile(param)
 		if err != nil {
-			panic(fmt.Errorf("invalid regexp: %s", param))
+			return ProgrammError{Message: fmt.Sprintf("invalid regexp: %s", param)}
 		}
 
 		if !re.MatchString(value) {
@@ -117,7 +129,7 @@ func validateString(value, rule, param string) error {
 		}
 		return fmt.Errorf("must be one of %v", allowedValues)
 	default:
-		panic(fmt.Errorf("unknown validator for string: %s", rule))
+		return ProgrammError{Message: fmt.Sprintf("unknown validator for string: %s", rule)}
 	}
 	return nil
 }
@@ -129,7 +141,7 @@ func validateInt(value int, rule, param string) error {
 	case "min":
 		minVal, err := strconv.Atoi(param)
 		if err != nil {
-			panic(fmt.Errorf("invalid min parameter: %s", param))
+			return ProgrammError{Message: fmt.Sprintf("invalid min parameter: %s", param)}
 		}
 
 		if value < minVal {
@@ -139,7 +151,7 @@ func validateInt(value int, rule, param string) error {
 	case "max":
 		maxVal, err := strconv.Atoi(param)
 		if err != nil {
-			panic(fmt.Errorf("invalid max parameter: %s", param))
+			return ProgrammError{Message: fmt.Sprintf("invalid max parameter: %s", param)}
 		}
 
 		if value > maxVal {
@@ -152,7 +164,7 @@ func validateInt(value int, rule, param string) error {
 		for _, allowed := range allowedValues {
 			allowedInt, err := strconv.Atoi(allowed)
 			if err != nil {
-				panic(fmt.Errorf("invalid int value in 'in' validator: %s", allowed))
+				return ProgrammError{Message: fmt.Sprintf("invalid int value in 'in' validator: %s", allowed)}
 			}
 
 			if value == allowedInt {
@@ -162,7 +174,7 @@ func validateInt(value int, rule, param string) error {
 
 		return fmt.Errorf("must be one of %v", allowedValues)
 	default:
-		panic(fmt.Errorf("unknown validator for int: %s", rule))
+		return ProgrammError{Message: fmt.Sprintf("unknown validator for int: %s", rule)}
 	}
 
 	return nil
