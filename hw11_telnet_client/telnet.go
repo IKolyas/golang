@@ -55,18 +55,10 @@ func (tc *TClient) Close() error {
 func (tc *TClient) Send() error {
 	scanner := bufio.NewScanner(tc.in)
 	for scanner.Scan() {
-		// Получаем строку и преобразуем ее в руны
 		input := scanner.Text()
-		runes := []rune(input) // Преобразуем строку в руны
-		// Отправляем данные
-		_, err := tc.conn.Write([]byte(string(runes)))
+		_, err := fmt.Fprintf(tc.conn, "%s\n", input)
 		if err != nil {
 			return fmt.Errorf("ошибка отправки данных: %w", err)
-		}
-		// Отправляем символ новой строки
-		_, err = tc.conn.Write([]byte("\n"))
-		if err != nil {
-			return fmt.Errorf("ошибка отправки символа новой строки: %w", err)
 		}
 	}
 	if err := scanner.Err(); err != nil {
