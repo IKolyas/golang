@@ -16,7 +16,6 @@ type TelnetClient interface {
 	Send() error
 	Receive() error
 }
-
 type TClient struct {
 	address string
 	timeout time.Duration
@@ -33,57 +32,55 @@ func NewTelnetClient(address string, timeout time.Duration, in io.ReadCloser, ou
 		out:     out,
 	}
 }
-
 func (tc *TClient) Connect() error {
 	conn, err := net.DialTimeout("tcp", tc.address, tc.timeout)
 	if err != nil {
-		return err
+		return fmt.Errorf("ошибка подключения к %s: %w", tc.address, err)
 	}
 	tc.conn = conn
-	fmt.Fprintf(os.Stderr, "...Connected to %s\n", tc.address)
+	fmt.Fprintf(os.Stderr, "...Подключено к %s\n", tc.address)
 	return nil
 }
-
 func (tc *TClient) Close() error {
 	if tc.conn != nil {
-		return tc.conn.Close()
+		if err := tc.conn.Close(); err != nil {
+			return fmt.Errorf("ошибка закрытия соединения: %w", err)
+		}
 	}
 	return nil
 }
-
 func (tc *TClient) Send() error {
 	scanner := bufio.NewScanner(tc.in)
 	for scanner.Scan() {
 		_, err := tc.conn.Write(scanner.Bytes())
 		if err != nil {
-			return err
+			return fmt.Errorf("ошибка отправки данных: %w", err)
 		}
 		_, err = tc.conn.Write([]byte("\n"))
 		if err != nil {
-			return err
+			return fmt.Errorf("ошибка отправки символа новой строки: %w", err)
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return err
+		return fmt.Errorf("ошибка чтения ввода: %w", err)
 	}
 	fmt.Fprintln(os.Stderr, "...EOF")
 	return nil
 }
-
 func (tc *TClient) Receive() error {
 	reader := bufio.NewReader(tc.conn)
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				fmt.Fprintln(os.Stderr, "...Connection was closed by peer")
+				fmt.Fprintln(os.Stderr, "...Соединение закрыто удаленной стороной")
 				return nil
 			}
-			return err
+			return fmt.Errorf("ошибка получения данных: %w", err)
 		}
 		_, err = fmt.Fprint(tc.out, line)
 		if err != nil {
-			return err
+			return fmt.Errorf("ошибка вывода данных: %w", err)
 		}
 	}
 }

@@ -31,25 +31,38 @@ func main() {
 	}
 	address := fmt.Sprintf("%s:%s", args[0], args[1])
 	client := NewTelnetClient(address, timeout, os.Stdin, os.Stdout)
+	// Подключение к серверу
 	if err := client.Connect(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error connecting to server: %v\n", err)
 		os.Exit(1)
 	}
 	defer client.Close()
+	// Канал для обработки ошибок
+	errChan := make(chan error, 2)
+	// Горутина для отправки данных
 	go func() {
 		if err := client.Send(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error sending data: %v\n", err)
-			os.Exit(1)
+			errChan <- fmt.Errorf("Error sending data: %v", err)
 		}
 	}()
+	// Горутина для получения данных
 	go func() {
 		if err := client.Receive(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error receiving data: %v\n", err)
-			os.Exit(1)
+			errChan <- fmt.Errorf("Error receiving data: %v", err)
 		}
 	}()
+	// Канал для обработки сигналов
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT)
-	<-sigChan
-	fmt.Fprintln(os.Stderr, "...SIGINT received, closing connection")
+	// Ожидание сигнала завершения или ошибки
+	select {
+	case sig := <-sigChan:
+		fmt.Fprintf(os.Stderr, "...%s received, closing connection\n", sig)
+	case err := <-errChan:
+		fmt.Fprintln(os.Stderr, err)
+	}
+	// Закрытие соединения
+	if err := client.Close(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error closing connection: %v\n", err)
+	}
 }
