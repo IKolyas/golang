@@ -42,13 +42,13 @@ func main() {
 	// Горутина для отправки данных
 	go func() {
 		if err := client.Send(); err != nil {
-			errChan <- fmt.Errorf("Error sending data: %v", err)
+			errChan <- fmt.Errorf("error sending data: %w", err)
 		}
 	}()
 	// Горутина для получения данных
 	go func() {
 		if err := client.Receive(); err != nil {
-			errChan <- fmt.Errorf("Error receiving data: %v", err)
+			errChan <- fmt.Errorf("error receiving data: %w", err)
 		}
 	}()
 	// Канал для обработки сигналов

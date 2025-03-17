@@ -32,6 +32,7 @@ func NewTelnetClient(address string, timeout time.Duration, in io.ReadCloser, ou
 		out:     out,
 	}
 }
+
 func (tc *TClient) Connect() error {
 	conn, err := net.DialTimeout("tcp", tc.address, tc.timeout)
 	if err != nil {
@@ -41,6 +42,7 @@ func (tc *TClient) Connect() error {
 	fmt.Fprintf(os.Stderr, "...Подключено к %s\n", tc.address)
 	return nil
 }
+
 func (tc *TClient) Close() error {
 	if tc.conn != nil {
 		if err := tc.conn.Close(); err != nil {
@@ -49,13 +51,19 @@ func (tc *TClient) Close() error {
 	}
 	return nil
 }
+
 func (tc *TClient) Send() error {
 	scanner := bufio.NewScanner(tc.in)
 	for scanner.Scan() {
-		_, err := tc.conn.Write(scanner.Bytes())
+		// Получаем строку и преобразуем ее в руны
+		input := scanner.Text()
+		runes := []rune(input) // Преобразуем строку в руны
+		// Отправляем данные
+		_, err := tc.conn.Write([]byte(string(runes)))
 		if err != nil {
 			return fmt.Errorf("ошибка отправки данных: %w", err)
 		}
+		// Отправляем символ новой строки
 		_, err = tc.conn.Write([]byte("\n"))
 		if err != nil {
 			return fmt.Errorf("ошибка отправки символа новой строки: %w", err)
@@ -67,6 +75,7 @@ func (tc *TClient) Send() error {
 	fmt.Fprintln(os.Stderr, "...EOF")
 	return nil
 }
+
 func (tc *TClient) Receive() error {
 	reader := bufio.NewReader(tc.conn)
 	for {
