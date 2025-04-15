@@ -1,9 +1,14 @@
 package main
 
 import (
+	"errors"
+	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -13,23 +18,24 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Usage: go-telnet [--timeout=<timeout>] <host> <port>")
 		os.Exit(1)
 	}
-	timeout := 10 * time.Second
-	args := os.Args[1:]
-	// Проверка аргументов на наличие таймаута
-	if len(args) > 0 && args[0][:10] == "--timeout=" {
-		var err error
-		timeout, err = time.ParseDuration(args[0][10:])
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Invalid timeout value: %v\n", err)
-			os.Exit(1)
-		}
-		args = args[1:]
+
+	timeout, err := getTimeout()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error parsing timeout: %v\n", err)
+		os.Exit(1)
 	}
+
+	args := flag.Args()
+
 	if len(args) < 2 {
 		fmt.Fprintln(os.Stderr, "Usage: go-telnet [--timeout=<timeout>] <host> <port>")
 		os.Exit(1)
 	}
-	address := fmt.Sprintf("%s:%s", args[0], args[1])
+
+	host := args[0]
+	port := args[1]
+
+	address := fmt.Sprintf("%s:%s", host, port)
 	client := NewTelnetClient(address, timeout, os.Stdin, os.Stdout)
 	// Подключение к серверу
 	if err := client.Connect(); err != nil {
@@ -48,6 +54,10 @@ func main() {
 	// Горутина для получения данных
 	go func() {
 		if err := client.Receive(); err != nil {
+			if errors.Is(err, io.EOF) {
+				// Соединение закрыто корректно
+				return
+			}
 			errChan <- fmt.Errorf("error receiving data: %w", err)
 		}
 	}()
@@ -61,8 +71,23 @@ func main() {
 	case err := <-errChan:
 		fmt.Fprintln(os.Stderr, err)
 	}
-	// Закрытие соединения
-	if err := client.Close(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error closing connection: %v\n", err)
+}
+
+func getTimeout() (time.Duration, error) {
+	var timeout string
+	flag.StringVar(&timeout, "timeout", "10s", "timeout in seconds")
+	flag.Parse()
+
+	timeout = strings.TrimSuffix(timeout, "s")
+
+	seconds, err := strconv.Atoi(timeout)
+	if err != nil {
+		return 0, err
 	}
+
+	if seconds <= 0 {
+		return 10 * time.Second, nil
+	}
+
+	return time.Duration(seconds) * time.Second, nil
 }
