@@ -7,8 +7,6 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"strconv"
-	"strings"
 	"syscall"
 	"time"
 )
@@ -78,16 +76,14 @@ func getTimeout() (time.Duration, error) {
 	flag.StringVar(&timeout, "timeout", "10s", "timeout in seconds")
 	flag.Parse()
 
-	timeout = strings.TrimSuffix(timeout, "s")
-
-	seconds, err := strconv.Atoi(timeout)
+	duration, err := time.ParseDuration(timeout)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("invalid duration format: %v", err)
 	}
 
-	if seconds <= 0 {
+	if duration <= 0 {
 		return 10 * time.Second, nil
 	}
 
-	return time.Duration(seconds) * time.Second, nil
+	return duration, nil
 }
