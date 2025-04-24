@@ -78,7 +78,7 @@ func getTimeout() (time.Duration, error) {
 
 	duration, err := time.ParseDuration(timeout)
 	if err != nil {
-		return 0, fmt.Errorf("invalid duration format: %v", err)
+		return 0, fmt.Errorf("invalid duration format: %w", err)
 	}
 
 	if duration <= 0 {
